@@ -1,49 +1,55 @@
-import sys
-import tweepy
-import webbrowser
-from tweepy import OAuthHandler
-from tweepy import Stream
-from tweepy import StreamListener
+from tweepy import OAuthHandler, Stream, StreamListener
+import settings
 
-Q = sys.argv[1:] 
-auth = OAuthHandler(config.API_KEY, config.API_SECRET)
-auth.set_access_token(config.ACCESS_TOKEN, config.ACCESS_TOKEN_SECRET)
+
+products = ["XBT", "ETH", "EOS", "ADA"]
+
+
+def parse_tweet(text):
+    """Converts a tweet into data for making a trade.
+    """
+    if "Buy" in text:
+        side = "Buy"
+    else:
+        side = "Sell"
+
+    for p in products:
+        if p in text:
+            product = p
+            break
+
+    return {"side": side, "product": product}
 
 
 class CustomStreamListener(tweepy.StreamListener):
-
     def on_status(self, status):
-        
-        # We'll simply print some values in a tab-delimited format
-        # suitable for capturing to a flat file but you could opt 
-        # store them elsewhere, retweet select statuses, etc.
-
-
-
         try:
-            print "%s\t%s\t%s\t%s" % (status.text, 
-                                      status.author.screen_name, 
-                                      status.created_at, 
-                                      status.source,)
-        except Exception, e:
-            print >> sys.stderr, 'Encountered Exception:', e
+            text = status.text
+            if "trigger" in text:
+                data = parse_tweet(text)
+                print(data)
+        except Exception as e:
+            # log exception
             pass
 
     def on_error(self, status_code):
-        print >> sys.stderr, 'Encountered error with status code:', status_code
-        return True # Don't kill the stream
+        # print >> sys.stderr, 'Encountered error with status code:', status_code
+        return True  # Don't kill the stream
 
     def on_timeout(self):
-        print >> sys.stderr, 'Timeout...'
-        return True # Don't kill the stream
+        # print >> sys.stderr, 'Timeout...'
+        return True  # Don't kill the stream
 
-# Create a streaming API and set a timeout value of 60 seconds.
 
-streaming_api = Stream(auth, CustomStreamListener(), timeout=60)
+def main():
+    listener = CustomStreamListener()
+    auth = OAuthHandler(settings.TWITTER_API_KEY, settings.TWITTER_API_SECRET)
+    auth.set_access_token(
+        settings.TWITTER_ACCESS_TOKEN, settings.TWITTER_ACCESS_TOKEN_SECRET
+    )
+    stream = Stream(auth, listener)
+    stream.filter(follow=["960163880768102400"])
 
-# Optionally filter the statuses you want to track by providing a list
-# of users to "follow".
 
-print >> sys.stderr, 'Filtering the public timeline for "%s"' % (' '.join(sys.argv[1:]),)
-
-streaming_api.filter(follow=None, track=Q)
+if __name__ == "__main__":
+    main()
