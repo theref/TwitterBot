@@ -1,8 +1,7 @@
 from tweepy import OAuthHandler, Stream, StreamListener
 import settings
 
-
-products = ["XBT", "ETH", "EOS", "ADA"]
+products = settings.products
 
 
 def parse_tweet(text):
@@ -21,7 +20,7 @@ def parse_tweet(text):
     return {"side": side, "product": product}
 
 
-class CustomStreamListener(tweepy.StreamListener):
+class CustomStreamListener(StreamListener):
     def on_status(self, status):
         try:
             text = status.text
